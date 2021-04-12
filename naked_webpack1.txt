@@ -1,0 +1,132 @@
+裸のwebpackを実行する
+
+デフォルトの動作
+  1_webpackの実行
+    1.src/index.js をデフォルトのエントリーポイントとしてバンドルを開始する
+    2.プロジェクトルートの webpack.config.js ファイルを設定ファイルとして読み込む
+    3.dist/ 配下に main.js というJSファイルを吐き出す
+  
+  2_webpack-dev-serverの実行
+  webpack serve
+    1.バンドルしたファイルをlocalhostからサーブする
+    2.ファイルの更新を検知してバンドルし直す
+    
+    プロジェクトルートの index.html を localhost:8080 からサーブする
+    バンドルした結果を含むJSファイルを localhost:8080/main.js からサーブする
+    ファイルの変更を検知すると自動でバンドルし直してくれる
+    
+    
+設定ファイルのカスタマイズ
+  1_設定ファイルの位置の変更
+    Webpackの設定ファイル webpack.config.js は、
+    デフォルトではプロジェクトのルート位置にあることが期待されていますが、
+    コマンド実行時のオプションによって位置を変更することができます。
+  
+    config/webpack-dev.config.js　を作成
+      module.exports = {
+        mode: 'development', // production,development,none
+      };
+    
+    webpack --config config/webpack-dev.config
+    
+  2_エントリーポイントの変更
+    Webpackはデフォルトで src/index.js をエントリーポイントとしてバンドルを開始するが
+    entryの設定で指定を変更できる。
+      entry: './src/main.js',
+      
+  3_出力先の変更
+    ファイル名を変更する
+      バンドル結果のファイル名を bundle.js に変更したい場合
+      output: {
+        filename: 'bundle.js', // 追加
+      },
+      
+    出力先ディレクトリの変更
+      const path = require('path');
+      output: {
+         path: path.resolve(__dirname, '../build'), 
+      }
+      
+    複数のエントリーポイントから複数のバンドル結果を出力する
+  
+  1.entry でエントリーポイントのファイル名や位置を指定できる
+  2.output でバンドル結果のファイル名や出力先ディレクトリを指定できる
+  3.複数エントリーポイントから複数ファイルを出力することができる
+  
+  
+loaderを追加してjs以外のファイル以外を結合する
+
+  webpack serve --open
+
+  環境を整える
+    npm init -y
+    npm install -g webpack webpack-dev-server webpack-cli
+  webpack.config.js
+    module.exports = {
+      mode: 'production',
+    };
+
+  CSSファイルをバンドルする
+    src/main.cssを作成
+    src/index.jsで読み込み
+      import './main.css';
+      
+    loaderを導入
+      npm install --save-dev css-loader
+      npm install --save-dev style-loader
+      インストールしたloaderを設定ファイルに追加
+        module: {
+          rules: [
+            { test: /\.css$/, use: ['style-loader', 'css-loader'] },
+          ],
+        },
+        
+  SCSSファイルをバンドルする
+    scr/main.css -> scr/main.scss
+    npm install --save-dev sass-loader node-sass
+    webpack.config.jsの修正
+      { test: /\.scss$/, use: ['style-loader', 'css-loader', 'sass-loader'] },
+    index.jsの修正
+    
+    
+  画像ファイルをバンドルする
+    npm install --save-dev url-loader
+    webpack.config.jsの修正
+      { test: /\.(gif|png|jpe?g|)$/, use: 'url-loader' },
+    src/assets/ ディレクトリに適当な画像ファイルを追加して
+    src/index.js で読み込む。
+      import url from './assets/matchlab.png';
+      const img = document.createElement('img');
+      img.src = url;
+      document.body.appendChild(img);
+    画像ファイルが無事に Base64 形式にエンコードされて img タグに出力される
+    
+  
+  TypeScriptファイルをトランスパイルしてバンドルする
+    npm install --save-dev typescript ts-loader
+    TypeScriptには tsconfig.json が必要なので、
+    とりあえず動かすために空の設定ファイルをプロジェクトルートに追加
+    webpack.config.js にTypeScript用の設定を追加
+      { test: /\.ts$/, use: 'ts-loader' }, 
+    バンドル対象のTypeScriptファイルを追加
+      src/user.ts
+    src/index.js 内で上記のクラスを読み込む
+      import User from './user.ts';
+      const user = new User('Tom');
+      user.sayHi();
+  
+Pluginを設定する
+  HtmlWebpackPluginとは
+    index.html を用意しなくても、最低限のHTMLテンプレートを用意してくれるプラグインですが、ファイル名を指定することでHTMLファイルをエントリーポイントとしてバンドルしてくれるので、LP制作時などに重宝します。
+    html-loader 等、HTMLファイルを読み込むためのローダーと併用します。
+    url-loader 等と併用することで、1枚のHTMLファイルに全ファイルを結合することができます。
+    
+  1.パッケージをインストールする
+    npm install --save-dev html-webpack-plugin
+  2.設定ファイルの中で呼び出す
+    webpack.config.js
+      plugins: [
+        new HtmlWebpackPlugin(),
+      ],
+  3.plugins の配列の中に初期化したオブジェクトを入れる
+  
